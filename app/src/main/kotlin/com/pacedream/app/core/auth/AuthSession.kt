@@ -291,6 +291,18 @@ class SessionManager @Inject constructor(
     }
     
     /**
+     * Forgot password — send a reset link to the given email.
+     * POST /v1/auth/forgot-password (no auth header).
+     *
+     * Delegates to the legacy AuthSession which owns this endpoint; exposed
+     * here so screens on the new auth system can offer password reset
+     * (MOBILE_PARITY_AUDIT: forgotPassword was missing from SessionManager).
+     * Returns the user-facing confirmation message on success.
+     */
+    suspend fun forgotPassword(email: String): Result<String> =
+        legacyAuthSession.forgotPassword(email)
+
+    /**
      * Exchange Auth0 tokens for backend session
      * POST /v1/auth/auth0/callback
      */

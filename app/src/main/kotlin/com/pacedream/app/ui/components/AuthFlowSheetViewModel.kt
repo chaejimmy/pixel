@@ -25,7 +25,10 @@ data class AuthFlowSheetUiState(
     val isEmailLoading: Boolean = false,
     val isGoogleLoading: Boolean = false,
     val isAppleLoading: Boolean = false,
+    val isResetLoading: Boolean = false,
     val error: String? = null,
+    /** Non-error status message, e.g. "Password reset link sent to your email". */
+    val info: String? = null,
     val success: Boolean = false
 )
 
@@ -44,7 +47,9 @@ class AuthFlowSheetViewModel @Inject constructor(
                 isEmailLoading = false,
                 isGoogleLoading = false,
                 isAppleLoading = false,
+                isResetLoading = false,
                 error = null,
+                info = null,
                 success = false
             )
         }
@@ -66,20 +71,20 @@ class AuthFlowSheetViewModel @Inject constructor(
     }
 
     fun goToSignIn() {
-        _uiState.update { it.copy(mode = AuthFlowMode.SignIn, error = null) }
+        _uiState.update { it.copy(mode = AuthFlowMode.SignIn, error = null, info = null) }
     }
 
     fun goToSignUp() {
-        _uiState.update { it.copy(mode = AuthFlowMode.SignUp, error = null) }
+        _uiState.update { it.copy(mode = AuthFlowMode.SignUp, error = null, info = null) }
     }
 
     fun updateFirstName(value: String) = _uiState.update { it.copy(firstName = value, error = null) }
     fun updateLastName(value: String) = _uiState.update { it.copy(lastName = value, error = null) }
-    fun updateEmail(value: String) = _uiState.update { it.copy(email = value, error = null) }
+    fun updateEmail(value: String) = _uiState.update { it.copy(email = value, error = null, info = null) }
     fun updatePassword(value: String) = _uiState.update { it.copy(password = value, error = null) }
 
     private val AuthFlowSheetUiState.isAnyLoading: Boolean
-        get() = isEmailLoading || isGoogleLoading || isAppleLoading
+        get() = isEmailLoading || isGoogleLoading || isAppleLoading || isResetLoading
 
     private fun String?.sanitizeAuthError(): String? =
         this?.removePrefix("Server error 200: ")
@@ -160,6 +165,47 @@ class AuthFlowSheetViewModel @Inject constructor(
             } catch (e: Exception) {
                 Timber.e(e, "AuthFlowSheet: login exception")
                 _uiState.update { it.copy(isEmailLoading = false, error = (e.message ?: "Sign in failed").sanitizeAuthError()) }
+            }
+        }
+    }
+
+    /**
+     * Send a password-reset link to the email entered on the sign-in form.
+     * Requires the email field to be filled; surfaces the backend's
+     * confirmation message inline on success.
+     */
+    fun sendPasswordReset() {
+        if (_uiState.value.isAnyLoading) return
+        val email = _uiState.value.email.trim()
+        if (email.isBlank()) {
+            _uiState.update { it.copy(error = "Enter your email above to reset your password") }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isResetLoading = true, error = null, info = null) }
+            try {
+                sessionManager.forgotPassword(email).fold(
+                    onSuccess = { message ->
+                        _uiState.update { it.copy(isResetLoading = false, info = message) }
+                    },
+                    onFailure = { e ->
+                        Timber.e(e, "AuthFlowSheet: password reset failed")
+                        _uiState.update {
+                            it.copy(
+                                isResetLoading = false,
+                                error = (e.message ?: "Failed to send reset link").sanitizeAuthError()
+                            )
+                        }
+                    }
+                )
+            } catch (e: Exception) {
+                Timber.e(e, "AuthFlowSheet: password reset exception")
+                _uiState.update {
+                    it.copy(
+                        isResetLoading = false,
+                        error = (e.message ?: "Failed to send reset link").sanitizeAuthError()
+                    )
+                }
             }
         }
     }

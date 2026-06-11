@@ -138,10 +138,13 @@ fun AuthFlowSheet(
                         email = uiState.email,
                         password = uiState.password,
                         isLoading = uiState.isEmailLoading,
+                        isResetLoading = uiState.isResetLoading,
                         error = uiState.error,
+                        info = uiState.info,
                         onEmailChange = viewModel::updateEmail,
                         onPasswordChange = viewModel::updatePassword,
                         onContinue = viewModel::loginWithEmail,
+                        onForgotPassword = viewModel::sendPasswordReset,
                         onSwitchToSignUp = viewModel::goToSignUp
                     )
 
@@ -318,10 +321,13 @@ private fun SignInContent(
     email: String,
     password: String,
     isLoading: Boolean,
+    isResetLoading: Boolean,
     error: String?,
+    info: String?,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onContinue: () -> Unit,
+    onForgotPassword: () -> Unit,
     onSwitchToSignUp: () -> Unit
 ) {
     Column(
@@ -354,8 +360,32 @@ private fun SignInContent(
             shape = RoundedCornerShape(PaceDreamRadius.LG)
         )
 
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (isResetLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            TextButton(
+                onClick = onForgotPassword,
+                enabled = !isLoading && !isResetLoading
+            ) {
+                Text(
+                    "Forgot password?",
+                    style = PaceDreamTypography.Footnote.copy(fontWeight = FontWeight.SemiBold)
+                )
+            }
+        }
+
         if (!error.isNullOrBlank()) {
             AuthInlineErrorBanner(message = error, modifier = Modifier.fillMaxWidth())
+        }
+
+        if (!info.isNullOrBlank()) {
+            AuthInlineInfoBanner(message = info, modifier = Modifier.fillMaxWidth())
         }
 
         Button(
@@ -530,6 +560,32 @@ private fun AuthInlineErrorBanner(message: String, modifier: Modifier = Modifier
     }
 }
 
+@Composable
+private fun AuthInlineInfoBanner(message: String, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .background(
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                RoundedCornerShape(PaceDreamRadius.MD),
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            PaceDreamIcons.Check,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(18.dp),
+        )
+        Text(
+            text = message,
+            style = PaceDreamTypography.Body,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
 @Preview(showBackground = true, widthDp = 380)
 @Composable
 private fun PreviewAuthChooserContent() {
@@ -558,10 +614,13 @@ private fun PreviewAuthSignInContent() {
                 email = "alex@pacedream.com",
                 password = "password",
                 isLoading = false,
+                isResetLoading = false,
                 error = "Invalid email or password",
+                info = null,
                 onEmailChange = {},
                 onPasswordChange = {},
                 onContinue = {},
+                onForgotPassword = {},
                 onSwitchToSignUp = {}
             )
         }
