@@ -218,7 +218,10 @@ class BookingFormViewModel @Inject constructor(
                 startCal.add(Calendar.MINUTE, currentState.selectedDuration)
                 val endTime = fmt.format(startCal.time)
                 _uiState.value = currentState.copy(endTime = endTime)
-            } catch (_: Exception) { }
+            } catch (_: Exception) {
+                // Unparseable start time: keep the previous endTime rather
+                // than surfacing an error for a transient picker state.
+            }
         }
     }
 
