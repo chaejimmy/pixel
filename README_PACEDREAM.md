@@ -53,9 +53,20 @@ Callback URLs to configure in Auth0 Dashboard:
 
 ### Build Flavors
 
-The app supports two flavors:
-- `demo`: Uses demo/staging backend
-- `prod`: Uses production backend
+The app supports two flavors (dimension `contentType`):
+- `prod`: Uses the production backend. This is what ships.
+- `staging`: Points the networking layer at the staging backend for QA.
+  Configure `STAGING_SERVICE_URL` and `STAGING_FRONTEND_BASE_URL` in
+  `secrets.properties` (see `secrets.properties.template`); when unset the
+  flavor falls back to the production URLs. Build with:
+
+  ```bash
+  ./gradlew assembleStagingDebug
+  ```
+
+  The staging flavor keeps the same application id as `prod` (a different
+  id would fail Firebase `google-services.json` package matching) and is
+  exempt from the release-build production-secrets guard.
 
 ## Deep Links
 

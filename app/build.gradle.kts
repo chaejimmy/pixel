@@ -47,9 +47,12 @@ gradle.taskGraph.whenReady {
     val isReleaseBuild = allTasks.any { task ->
         val name = task.name
         // Match assembleRelease / bundleRelease / assembleProdRelease /
-        // bundleProdRelease etc.  Avoid matching debug variants.
+        // bundleProdRelease etc.  Avoid matching debug variants.  Staging
+        // release builds are exempt: they are QA artifacts that point at the
+        // staging backend and legitimately use non-production credentials.
         (name.startsWith("assemble") || name.startsWith("bundle")) &&
             name.endsWith("Release", ignoreCase = false) &&
+            !name.contains("Staging") &&
             !name.contains("AndroidTest", ignoreCase = true)
     }
     if (!isReleaseBuild) return@whenReady
@@ -126,6 +129,11 @@ android {
         buildConfigField("String", "FRONTEND_BASE_URL",
             "\"${secretsProps.getProperty("FRONTEND_BASE_URL", "https://www.pacedream.com")}\"")
 
+        // Backend base URL for the new networking stack (AppConfig reads this;
+        // the legacy core/network stack has its own SERVICE_URL BuildConfig).
+        buildConfigField("String", "SERVICE_URL",
+            "\"${secretsProps.getProperty("SERVICE_URL", "https://pacedream-backend.onrender.com/v1/")}\"")
+
         // Cloudinary config (iOS parity: CLOUDINARY_CLOUD_NAME / CLOUDINARY_UPLOAD_PRESET in xcconfig)
         buildConfigField("String", "CLOUDINARY_CLOUD_NAME",
             "\"${secretsProps.getProperty("CLOUDINARY_CLOUD_NAME", "")}\"")
@@ -136,6 +144,22 @@ android {
         // (app/src/main/res/values/google_maps.xml) which the manifest
         // meta-data picks up via @string/google_maps_key.
         // NOTE: resValue is not used because resvalues build feature is disabled.
+    }
+
+    productFlavors {
+        // QA flavor: same app id as prod (google-services.json constraint —
+        // see PaceDreamFlavor.kt), but the environment tag and URLs point at
+        // staging. STAGING_* keys default to the production values so the
+        // flavor builds even when they are not configured.
+        getByName("staging") {
+            buildConfigField("String", "PD_ENVIRONMENT", "\"staging\"")
+            buildConfigField("String", "SERVICE_URL",
+                "\"${secretsProps.getProperty("STAGING_SERVICE_URL",
+                    secretsProps.getProperty("SERVICE_URL", "https://pacedream-backend.onrender.com/v1/"))}\"")
+            buildConfigField("String", "FRONTEND_BASE_URL",
+                "\"${secretsProps.getProperty("STAGING_FRONTEND_BASE_URL",
+                    secretsProps.getProperty("FRONTEND_BASE_URL", "https://www.pacedream.com"))}\"")
+        }
     }
 
     signingConfigs {

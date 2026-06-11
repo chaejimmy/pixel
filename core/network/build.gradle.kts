@@ -17,14 +17,15 @@ android {
         buildConfig = true
     }
 
+    // Load secrets: defaults first, then local overrides (secrets.properties wins)
+    val secretsProperties = Properties()
+    listOf("secrets.defaults.properties", "secrets.properties").forEach { name ->
+        val f = rootProject.file(name)
+        if (f.exists()) f.inputStream().use { secretsProperties.load(it) }
+    }
+
     defaultConfig {
-        // Load secrets: defaults first, then local overrides (secrets.properties wins)
-        val secretsProperties = Properties()
-        listOf("secrets.defaults.properties", "secrets.properties").forEach { name ->
-            val f = rootProject.file(name)
-            if (f.exists()) f.inputStream().use { secretsProperties.load(it) }
-        }
-        
+
         // Auth0 Configuration from secrets file
         val auth0Domain = secretsProperties.getProperty("AUTH0_DOMAIN") ?: "" // Set in secrets.defaults.properties
         val auth0ClientId = secretsProperties.getProperty("AUTH0_CLIENT_ID") ?: "" // Set in secrets.defaults.properties
@@ -55,6 +56,23 @@ android {
         buildConfigField("String", "GOOGLE_MAPS_API_KEY", "\"$mapsKey\"")
     }
 
+    productFlavors {
+        // The staging flavor (declared by the flavors convention plugin)
+        // repoints the networking layer at the staging backend. The STAGING_*
+        // keys default to the production URLs so the flavor still builds when
+        // they are not configured in secrets(.defaults).properties.
+        getByName("staging") {
+            val stagingServiceUrl = secretsProperties.getProperty("STAGING_SERVICE_URL")
+                ?: secretsProperties.getProperty("SERVICE_URL")
+                ?: "https://pacedream-backend.onrender.com/v1/"
+            buildConfigField("String", "SERVICE_URL", "\"$stagingServiceUrl\"")
+
+            val stagingFrontendUrl = secretsProperties.getProperty("STAGING_FRONTEND_BASE_URL")
+                ?: secretsProperties.getProperty("FRONTEND_BASE_URL")
+                ?: "https://www.pacedream.com"
+            buildConfigField("String", "FRONTEND_BASE_URL", "\"$stagingFrontendUrl\"")
+        }
+    }
 }
 
 dependencies {
