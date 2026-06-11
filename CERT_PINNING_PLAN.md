@@ -1,12 +1,13 @@
 # Certificate Pinning — Plan & Status
 
-Status: **scaffolded with placeholder pins** — `network_security_config.xml`
-ships a `<pin-set>` for `api.pacedream.com`, `www.pacedream.com`, and
-`pacedream.com`, but both `<pin digest="SHA-256">` entries are placeholders
-(see the `AAAA…` / `BBBB…` markers in the XML). Real SPKI hashes must be
-filled in before the next release that flips the `expiration` attribute to
-a date past the rollout. The audit flagged the absence of certificate
-pinning as a P1 issue
+Status: **not enabled — pin-set removed pending prerequisites.** A
+`<pin-set>` with placeholder `AAAA…` / `BBBB…` hashes briefly shipped in
+`network_security_config.xml`; because the platform enforces pins on
+release builds, that configuration broke every TLS connection to
+`api.pacedream.com` in release builds and has been removed (2026-06-11).
+Do not re-add the pin-set until the prerequisites below are met and real
+intermediate SPKI hashes are available. The audit flagged the absence of
+certificate pinning as a P1 issue
 (`network_security_config.xml` and `ApiClient.kt` rely solely on the system
 trust store). Pinning is high-leverage but **dangerous to ship without
 rotation infrastructure** — a misconfigured pin set bricks every installed
