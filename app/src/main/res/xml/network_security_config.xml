@@ -8,20 +8,18 @@
     </base-config>
 
     <!--
-        Certificate pinning for the PaceDream API + frontend domains.
+        Certificate pinning for the PaceDream API + frontend domains is
+        intentionally NOT enabled yet. A <pin-set> previously shipped here
+        with placeholder SPKI hashes, which the platform *enforces* on
+        release builds — every TLS connection to api.pacedream.com failed
+        pin validation, taking the whole app offline (debug builds were
+        unaffected only because <debug-overrides> bypasses pins).
 
-        SPKI hashes pin the *intermediate CA* (not the leaf) so rotation
-        happens on a years cadence rather than every 60–90 days. Two pins
-        are required by Android (one primary + one backup); the backup is
-        currently a placeholder that must be replaced with the real SPKI
-        hash of the configured backup intermediate before the pins are
-        rotated server-side.
-
-        The `expiration` attribute is the platform's built-in fail-open
-        safety net: when the date passes the pin-set is ignored and the
-        system trust store is used instead, so a forgotten rotation
-        degrades to "no pinning" rather than "no network". See
-        CERT_PINNING_PLAN.md for the rotation procedure.
+        Per CERT_PINNING_PLAN.md, do not re-add a <pin-set> until the
+        rotation prerequisites are met (real intermediate SPKI hashes,
+        a pre-loaded backup intermediate on the CDN, Crashlytics pin-failure
+        telemetry, and a rotation owner). The plan contains the exact XML
+        to restore and the procedure to compute the hashes.
     -->
     <domain-config>
         <domain includeSubdomains="true">api.pacedream.com</domain>
@@ -30,12 +28,6 @@
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
-        <pin-set expiration="2027-05-01">
-            <!-- TODO(launch): replace with real SHA-256 SPKI of active intermediate -->
-            <pin digest="SHA-256">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</pin>
-            <!-- TODO(launch): replace with real SHA-256 SPKI of backup intermediate -->
-            <pin digest="SHA-256">BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=</pin>
-        </pin-set>
     </domain-config>
 
     <!--

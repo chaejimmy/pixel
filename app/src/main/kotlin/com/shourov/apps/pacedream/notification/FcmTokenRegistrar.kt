@@ -71,6 +71,57 @@ class FcmTokenRegistrar @Inject constructor(
         Timber.d("FCM registration cache cleared — next registerCurrentToken() will re-register")
     }
 
+    /**
+     * Deregister this device from backend push routing so a logged-out
+     * device stops receiving the previous user's notifications (iOS parity:
+     * PushDeviceRegistrar.deregister(authToken:) fired from signOut).
+     *
+     * The access token is passed explicitly because SessionManager.signOut()
+     * wipes TokenStorage synchronously while this request runs on a
+     * background scope — reading the storage from here would race the wipe.
+     * Local registration state is reset up front so the next login
+     * re-registers even if the network call fails.
+     */
+    fun deregisterCurrentToken(accessToken: String?) {
+        val fcmToken = fcmTokenStore.getToken()
+        fcmTokenStore.reset()
+
+        if (accessToken.isNullOrBlank()) {
+            Timber.tag("PushInit").w("Skipping push deregistration: no access token")
+            return
+        }
+        if (fcmToken.isNullOrBlank()) {
+            Timber.tag("PushInit").d("Skipping push deregistration: no stored FCM token")
+            return
+        }
+
+        scope.launch {
+            try {
+                val url = appConfig.buildApiUrl("push-devices")
+                val body = json.encodeToString(
+                    DeregisterDeviceRequest.serializer(),
+                    DeregisterDeviceRequest(fcmToken = fcmToken, platform = "android")
+                )
+                val result = apiClient.delete(
+                    url,
+                    body,
+                    includeAuth = false,
+                    additionalHeaders = mapOf("Authorization" to "Bearer $accessToken")
+                )
+                when (result) {
+                    is ApiResult.Success ->
+                        Timber.tag("PushInit").i("Push device deregistered via DELETE /push-devices")
+                    is ApiResult.Failure ->
+                        Timber.tag("PushInit").w(
+                            "DELETE /push-devices failed: %s", result.error.message
+                        )
+                }
+            } catch (e: Exception) {
+                Timber.tag("PushInit").w(e, "Failed to deregister push device")
+            }
+        }
+    }
+
     private suspend fun sendTokenToServer(token: String) {
         val hasTokens = tokenStorage.hasTokens()
         val userId = tokenStorage.userId
@@ -195,6 +246,12 @@ class FcmTokenRegistrar @Inject constructor(
     @Serializable
     private data class LegacyRegisterDeviceRequest(
         val token: String,
+        val platform: String,
+    )
+
+    @Serializable
+    private data class DeregisterDeviceRequest(
+        val fcmToken: String,
         val platform: String,
     )
 }

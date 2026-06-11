@@ -165,25 +165,25 @@ fun AboutUsScreen(
                         AboutLinkItem(
                             icon = PaceDreamIcons.Language,
                             title = "Website",
-                            onClick = { try { uriHandler.openUri("https://www.pacedream.com") } catch (_: Exception) { } }
+                            onClick = { try { uriHandler.openUri("https://www.pacedream.com") } catch (_: Exception) { /* no browser available */ } }
                         )
                         HorizontalDivider(color = PaceDreamColors.Border)
                         AboutLinkItem(
                             icon = PaceDreamIcons.Description,
                             title = "Terms of Service",
-                            onClick = { try { uriHandler.openUri("https://www.pacedream.com/terms") } catch (_: Exception) { } }
+                            onClick = { try { uriHandler.openUri("https://www.pacedream.com/terms") } catch (_: Exception) { /* no browser available */ } }
                         )
                         HorizontalDivider(color = PaceDreamColors.Border)
                         AboutLinkItem(
                             icon = PaceDreamIcons.Policy,
                             title = "Privacy Policy",
-                            onClick = { try { uriHandler.openUri("https://www.pacedream.com/privacy") } catch (_: Exception) { } }
+                            onClick = { try { uriHandler.openUri("https://www.pacedream.com/privacy") } catch (_: Exception) { /* no browser available */ } }
                         )
                         HorizontalDivider(color = PaceDreamColors.Border)
                         AboutLinkItem(
                             icon = PaceDreamIcons.Email,
                             title = "Contact Us",
-                            onClick = { try { uriHandler.openUri("mailto:support@pacedream.com") } catch (_: Exception) { } }
+                            onClick = { try { uriHandler.openUri("mailto:support@pacedream.com") } catch (_: Exception) { /* no email app available */ } }
                         )
                     }
                 }

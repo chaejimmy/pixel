@@ -11,15 +11,21 @@ enum class FlavorDimension {
     contentType
 }
 
-// The content for the app can either come from local static data which is useful for demo
-// purposes, or from a production backend server which supplies up-to-date, real content.
-// These two product flavors reflect this behaviour.
+// The app talks to the production backend by default (`prod`, the flavor
+// that ships). The `staging` flavor points the networking BuildConfig
+// fields at the staging backend via the STAGING_* keys in
+// secrets(.defaults).properties — see core/network/build.gradle.kts and
+// app/build.gradle.kts — so QA can exercise pre-production APIs without
+// code changes.
 @Suppress("EnumEntryName")
 enum class PaceDreamFlavor(
     val dimension: FlavorDimension,
     val applicationIdSuffix: String? = null,
 ) {
-    //    dev(contentType, applicationIdSuffix = ".dev"),
+    // No applicationIdSuffix on staging: google-services.json only registers
+    // the base package (and the .debug buildType suffix), and the
+    // google-services plugin fails the build for unregistered package names.
+    staging(contentType),
     prod(contentType)
 }
 

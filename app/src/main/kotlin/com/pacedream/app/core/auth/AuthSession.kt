@@ -10,6 +10,7 @@ import com.pacedream.app.core.config.AppConfig
 import com.pacedream.app.core.network.ApiError
 import com.pacedream.app.core.network.ApiResult
 import com.shourov.apps.pacedream.core.network.auth.AuthSession as LegacyAuthSession
+import com.shourov.apps.pacedream.notification.FcmTokenRegistrar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -54,7 +55,8 @@ class SessionManager @Inject constructor(
     private val appConfig: AppConfig,
     private val authRepository: AuthRepository,
     private val json: Json,
-    private val legacyAuthSession: LegacyAuthSession
+    private val legacyAuthSession: LegacyAuthSession,
+    private val fcmTokenRegistrar: FcmTokenRegistrar
 ) {
 
     /**
@@ -289,6 +291,18 @@ class SessionManager @Inject constructor(
     }
     
     /**
+     * Forgot password — send a reset link to the given email.
+     * POST /v1/auth/forgot-password (no auth header).
+     *
+     * Delegates to the legacy AuthSession which owns this endpoint; exposed
+     * here so screens on the new auth system can offer password reset
+     * (MOBILE_PARITY_AUDIT: forgotPassword was missing from SessionManager).
+     * Returns the user-facing confirmation message on success.
+     */
+    suspend fun forgotPassword(email: String): Result<String> =
+        legacyAuthSession.forgotPassword(email)
+
+    /**
      * Exchange Auth0 tokens for backend session
      * POST /v1/auth/auth0/callback
      */
@@ -321,6 +335,13 @@ class SessionManager @Inject constructor(
 
         // Capture tokens before clearing so we can send them to the backend
         val refreshToken = tokenStorage.refreshToken
+
+        // Deregister the push device while we still hold an access token so
+        // the backend stops routing this user's notifications to the device
+        // (iOS parity: PushDeviceRegistrar.deregister fires before token wipe).
+        // Fire-and-forget inside the registrar; the captured token keeps the
+        // request authenticated after clearAll() below.
+        fcmTokenRegistrar.deregisterCurrentToken(tokenStorage.accessToken)
 
         // Fire-and-forget: revoke refresh token on the server
         scope.launch {

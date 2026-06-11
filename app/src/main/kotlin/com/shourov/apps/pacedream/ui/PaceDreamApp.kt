@@ -115,6 +115,10 @@ fun PaceDreamApp(
     // self-mounts a Hilt-scoped WifiSessionViewModel that observes
     // WifiSessionRouter for push-driven intents.
     Box(modifier = Modifier.fillMaxSize()) {
+        // Backend-flagged account restrictions surface here, above the
+        // host/guest switch, so the dialog is visible in either mode.
+        AccountRestrictionHost()
+
         if (isHostMode) {
             // Show host mode interface
             // Add-listing, analytics, withdraw, and edit-listing navigation

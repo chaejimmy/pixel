@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -84,7 +85,13 @@ class ChatViewModel @Inject constructor(
 
             // Mark messages in this chat as read (fire-and-forget)
             launch {
-                try { messageRepository.markChatAsReadOnServer(chatId) } catch (_: Exception) { }
+                try {
+                    messageRepository.markChatAsReadOnServer(chatId)
+                } catch (e: Exception) {
+                    // Best-effort: unread badges self-heal on the next fetch,
+                    // but log so persistent failures surface in diagnostics.
+                    Timber.w(e, "markChatAsReadOnServer failed for chat %s", chatId)
+                }
             }
 
             messageRepository.getChatMessages(chatId).collect { result ->

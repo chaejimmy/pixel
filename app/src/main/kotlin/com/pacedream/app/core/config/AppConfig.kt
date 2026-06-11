@@ -84,22 +84,30 @@ class AppConfig @Inject constructor() {
     }
     
     /**
-     * Get backend base URL with fallback support
-     * Priority: BACKEND_BASE_URL > PD_BACKEND_BASE_URL > default
+     * Get backend base URL with fallback support.
+     * Priority: BACKEND_BASE_URL / PD_BACKEND_BASE_URL (system property or
+     * env, test overrides) > BuildConfig.SERVICE_URL (secrets/flavor-driven;
+     * the staging flavor repoints it) > hardcoded default.
+     *
+     * BuildConfig was previously never consulted here, so on-device builds
+     * always used the hardcoded default regardless of SERVICE_URL in secrets.
      */
     private fun getBackendBaseUrl(): String {
         return getConfigValue("BACKEND_BASE_URL")
             ?: getConfigValue("PD_BACKEND_BASE_URL")
+            ?: try { BuildConfig.SERVICE_URL.takeIf { it.isNotBlank() } } catch (_: Throwable) { null }
             ?: DEFAULT_BACKEND_URL
     }
-    
+
     /**
-     * Get frontend base URL with fallback support
-     * Priority: FRONTEND_BASE_URL > PD_FRONTEND_BASE_URL > default
+     * Get frontend base URL with fallback support.
+     * Priority: FRONTEND_BASE_URL / PD_FRONTEND_BASE_URL (system property or
+     * env, test overrides) > BuildConfig.FRONTEND_BASE_URL > hardcoded default.
      */
     private fun getFrontendBaseUrl(): String {
         return getConfigValue("FRONTEND_BASE_URL")
             ?: getConfigValue("PD_FRONTEND_BASE_URL")
+            ?: try { BuildConfig.FRONTEND_BASE_URL.takeIf { it.isNotBlank() } } catch (_: Throwable) { null }
             ?: DEFAULT_FRONTEND_URL
     }
     
